@@ -18,7 +18,7 @@ export default function initNetworkScene() {
     // Store Packets in Simulation
     let packets = [];
 
-    // Function to Create a New Packet
+    // Function to Create a New Packet with Visual Enhancements
     function createPacket(data) {
         let packet = BABYLON.MeshBuilder.CreateSphere("packet", { diameter: 1 }, scene);
         packet.position = new BABYLON.Vector3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
@@ -26,13 +26,23 @@ export default function initNetworkScene() {
         packet.latency = data.latency;
         packet.adjustment = data.adjustment;
         packet.stabilized = false;
-        packet.lifespan = 300; // Decay over time (300 frames)
-        
-        // Assign color based on density
-        let color = new BABYLON.Color3(1 - packet.density, packet.density, packet.latency);
+        packet.lifespan = 300; // Decay over time
+
+        // Assign dynamic material color based on density
         let material = new BABYLON.StandardMaterial("packetMaterial", scene);
-        material.diffuseColor = color;
+        material.diffuseColor = new BABYLON.Color3(1 - packet.density, packet.density, packet.latency);
+        material.emissiveColor = new BABYLON.Color3(0.2, 0.2, packet.latency * 5); // Glow effect based on latency
         packet.material = material;
+
+        // High-mass packets get particle effects
+        if (packet.density > 0.8) {
+            let particleSystem = new BABYLON.ParticleSystem("particles", 100, scene);
+            particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", scene);
+            particleSystem.emitter = packet;
+            particleSystem.minEmitPower = 1;
+            particleSystem.maxEmitPower = 2;
+            particleSystem.start();
+        }
 
         packets.push(packet);
     }
@@ -49,11 +59,11 @@ export default function initNetworkScene() {
 
             let netAdjustment = (leftAdjustment - rightAdjustment) * 0.1;
 
-            // Apply gradual movement instead of instant shifts
-            packet.position.x += netAdjustment * 0.05;  
-            packet.position.y += (packet.density - packet.latency) * 0.02; // Small Y shift to show flow
+            // Smooth position updates
+            packet.position.x += netAdjustment * 0.05;
+            packet.position.y += (packet.density - packet.latency) * 0.02;
 
-            // Scale smoothly
+            // Interpolated scaling
             packet.scaling.y = BABYLON.Scalar.Lerp(packet.scaling.y, packet.density * 5, 0.1);
 
             // Gradual adjustment decay over time

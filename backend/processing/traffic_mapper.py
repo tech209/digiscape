@@ -1,22 +1,27 @@
 import time
-import random
-from capture.traffic_sniffer import capture_packet
+from capture.traffic_sniffer import packet_queue
 
 def process_packet():
-    """Processes a captured packet into density, latency, and adjustment values."""
-    packet_data = capture_packet()
+    """Processes a captured packet from any available source."""
+    try:
+        packet_data = packet_queue.get(timeout=1)
 
-    # Simulate latency (real latency measurement can be added later)
-    latency = random.uniform(0.01, 0.2)
+        # Simulated latency based on timestamp
+        latency = max(time.time() - packet_data["timestamp"], 0.001)
 
-    # Density is inversely proportional to latency (avoiding division by zero)
-    density = 1 / max(latency, 0.001)
+        # Density based on inverse latency
+        density = 1 / latency
 
-    # Adjustment value to determine emergent balancing
-    adjustment = (density - latency) * 0.05
+        # Adjustment factor for emergent behavior
+        adjustment = (density - latency) * 0.05
 
-    return {
-        "density": density,
-        "latency": latency,
-        "adjustment": adjustment
-    }
+        return {
+            "density": density,
+            "latency": latency,
+            "adjustment": adjustment,
+            "src_ip": packet_data["src_ip"],
+            "dst_ip": packet_data["dst_ip"],
+            "source": packet_data["source"]
+        }
+    except queue.Empty:
+        return None
